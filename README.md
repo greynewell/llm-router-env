@@ -1,220 +1,120 @@
-# Claude Software Factory
+# LLM Router Env
 
-**Open an issue. Get a pull request.**
+**Train an RL agent to optimize LLM inference routing — cut costs 15-25% vs static strategies.**
 
-Six workflow files that turn any GitHub repo into a self-running software factory. You write issues. [Claude Code](https://docs.anthropic.com/en/docs/claude-code) writes the code, reviews PRs, fixes comments, merges when CI is green, tags releases, and scans for bugs — in a loop.
+A [Gymnasium](https://gymnasium.farama.org/)-compatible environment for training reinforcement learning agents to route incoming LLM prompts across a fleet of models (GPT-4o, Claude Sonnet, Haiku, Llama 3, Mixtral, etc.). The agent learns to minimize cost while meeting latency SLAs and quality thresholds — outperforming round-robin, random, and cheapest-first baselines within 100k training steps.
 
-No application code. No runtime. No server. Just GitHub Actions.
+## Quickstart
 
-## What happens when you create an issue
+```bash
+pip install -e ".[dev]"
 
-1. You open a GitHub issue ending with `@claude`
-2. Claude reads the issue, creates a branch, writes the code, opens a PR
-3. A second Claude instance reviews the PR and posts comments
-4. If there are review comments, Claude fixes them automatically
-5. When CI is green and reviews pass, the PR gets merged
-6. A semver tag is created from the commit message
-7. An hourly scan finds new bugs and TODOs — files more issues — and the loop continues
+# Run tests
+pytest -x
 
-## The Lifecycle
+# Train a PPO agent
+python scripts/train_ppo.py --total-timesteps 100000
 
-```
- ┌─────────────────────────────────────────────────────────────┐
- │                                                             │
- │   ┌──────────┐    ┌──────────────┐    ┌──────────────┐     │
- │   │  ISSUE   │───▶│ AUTO-ASSIGN  │───▶│  CLAUDE CODE │     │
- │   │ created  │    │ @claude      │    │  implements   │     │
- │   └──────────┘    └──────────────┘    └──────┬───────┘     │
- │        ▲                                      │             │
- │        │                                      ▼             │
- │   ┌────┴─────┐                         ┌──────────────┐    │
- │   │ PROACTIVE│                         │  PULL REQUEST │    │
- │   │ SCANNER  │                         │  opened       │    │
- │   │ (hourly) │                         └──────┬───────┘    │
- │   └──────────┘                                │             │
- │        ▲                                      ▼             │
- │        │                              ┌───────────────┐    │
- │        │                              │  CODE REVIEW   │    │
- │        │                              │  (automated)   │    │
- │        │                              └───────┬───────┘    │
- │        │                                      │             │
- │        │                                      ▼             │
- │        │                              ┌───────────────┐    │
- │        │                              │  PR SHEPHERD   │    │
- │        │                              │  fix comments  │    │
- │        │                              │  check CI      │    │
- │        │                              │  merge when    │    │
- │        │                              │  ready         │    │
- │        │                              └───────┬───────┘    │
- │        │                                      │             │
- │        │         ┌──────────────┐             │             │
- │        │         │  AUTO-TAG    │◀────────────┘             │
- │        └─────────│  semantic    │     (merged to main)      │
- │                  │  versioning  │                            │
- │                  └──────────────┘                            │
- │                                                             │
- └─────────────────────────────────────────────────────────────┘
+# Compare against baselines
+python scripts/eval_baselines.py --model-path ppo_llm_router.zip
+
+# Full demo with training curves
+python scripts/demo_notebook.py
 ```
 
-### Phase 1: Issue Creation
+## Environment
 
-An issue is created — either by a human or by the proactive scanner. The issue body ends with `@claude` to signal that Claude should pick it up.
+### Observation Space
 
-**Workflow:** `claude-auto-assign.yml`
-**Trigger:** `issues.opened`
-**Behavior:** Checks if the author is an org member (or Claude itself). If so, posts `@claude please implement this issue` as a comment, which triggers the next phase.
+`Box(0, 1, shape=(9,), dtype=float32)` with 5 default models:
 
-### Phase 2: Implementation
+| Index | Feature | Description |
+|---|---|---|
+| 0 | `prompt_length` | Normalized prompt length (0–1) |
+| 1 | `prompt_complexity` | Complexity score (0–1, beta distributed) |
+| 2–6 | `queue_depths[i]` | Normalized queue depth per model |
+| 7 | `time_of_day` | Normalized time (0=midnight, 0.5=noon) |
+| 8 | `budget_remaining` | Remaining cost budget (normalized) |
 
-Claude Code receives the `@claude` mention and goes to work. It reads the issue, creates a branch, writes the code, verifies the build, and opens a pull request.
+### Action Space
 
-**Workflow:** `claude.yml`
-**Trigger:** `@claude` mention in issue comment, PR comment, or review
-**Behavior:** Full implementation cycle — branch, code, build, commit, PR. Claude has access to git, gh, and your project's build/lint tools.
+`Discrete(5)` — index into available model presets.
 
-### Phase 3: Code Review
-
-The moment a PR is opened (or updated), automated code review kicks in. Claude Code reviews the diff and posts comments on potential issues.
-
-**Workflow:** `claude-code-review.yml`
-**Trigger:** `pull_request` opened, synchronized, ready_for_review, reopened
-**Behavior:** Runs the `code-review` plugin from Claude Code Actions, posting review comments directly on the PR.
-
-### Phase 4: PR Shepherd
-
-Every 15 minutes, the shepherd checks all open PRs. It reads review comments, applies fixes, verifies CI, and merges when everything is green.
-
-**Workflow:** `claude-pr-shepherd.yml`
-**Trigger:** Cron (`*/15 * * * *`) + manual dispatch
-**Behavior:**
-1. Fetches unresolved review comments (including from CodeRabbit or other bots)
-2. Applies fixes and commits them
-3. Checks CI status
-4. Merges via rebase when: CI green, no unresolved comments, not draft, no conflicts
-
-### Phase 5: Semantic Versioning
-
-When a PR merges to `main`, the auto-tagger examines the commit message and bumps the version accordingly.
-
-**Workflow:** `auto-tag.yml`
-**Trigger:** Push to `main`
-**Behavior:**
-| Commit pattern | Version bump |
-|---|---|
-| `BREAKING CHANGE` or `type!:` | MAJOR (resets minor + patch) |
-| `feat:` or `feat(scope):` | MINOR (resets patch) |
-| Everything else | PATCH |
-
-### Phase 6: Proactive Scanning
-
-Once per hour, Claude scans the codebase looking for problems and opportunities. It creates up to 3 issues per run, each ending with `@claude please implement this`, feeding the loop.
-
-**Workflow:** `claude-proactive.yml`
-**Trigger:** Cron (`0 * * * *`) + manual dispatch
-**Detects:**
-- Logic errors, unhandled errors, race conditions
-- Missing tests
-- Performance issues
-- Security concerns
-- TODO/FIXME comments
-- Feature gaps
-
-## Setup (3 steps)
-
-1. **Click "Use this template"** to create a new repository (or copy `.github/workflows/` into an existing one)
-
-2. **Add your API key as a secret:**
-   ```
-   Settings → Secrets and variables → Actions → New repository secret
-   Name: ANTHROPIC_API_KEY
-   Value: <your key from console.anthropic.com>
-   ```
-
-3. **Install the Claude GitHub App** at [github.com/apps/claude](https://github.com/apps/claude) and grant it access to your new repo
-
-That's it. Create an issue ending with `@claude please implement this` and watch it go.
-
-### Optional: Customize for your stack
-
-Edit `CLAUDE.md` with your language, build, lint, and test commands. Search for `# CUSTOMIZE:` in the workflow files to lock down tool access. The template ships language-agnostic — it works with Go, Node, Python, Rust, or anything with a CLI build tool.
-
-## File Structure
+### Reward
 
 ```
-.github/
-├── ISSUE_TEMPLATE/
-│   ├── feature.yml              # Feature request (auto-includes @claude)
-│   └── bug.yml                  # Bug report (auto-includes @claude)
-├── PULL_REQUEST_TEMPLATE.md     # PR template
-└── workflows/
-    ├── claude.yml               # Core: responds to @claude mentions
-    ├── claude-auto-assign.yml   # Gates and triggers Claude on new issues
-    ├── claude-code-review.yml   # AI code review on every PR
-    ├── claude-pr-shepherd.yml   # Merges when ready, asks Claude to fix comments
-    ├── claude-proactive.yml     # Hourly codebase scan, files issues
-    └── auto-tag.yml             # Semantic versioning from conventional commits
-.claude/
-└── settings.json                # Sandbox config for Claude Code
-CLAUDE.md                        # Project instructions for Claude
+r = -cost_weight * cost + quality_weight * quality
+    - latency_penalty * max(0, latency - sla_threshold)
 ```
+
+**Default weights:** `cost=1.0`, `quality=0.5`, `latency_penalty=2.0`, `sla_threshold=1.0s`
+
+### Episode
+
+Each episode runs for 1000 prompts (configurable). Terminates early if the cost budget is depleted.
+
+## Model Presets
+
+| Model | Cost/call | Latency (mean±std) | Quality |
+|---|---|---|---|
+| `tier1_large` | $0.030 | 2.0 ± 0.5s | 0.95 |
+| `tier1_small` | $0.003 | 0.5 ± 0.1s | 0.82 |
+| `tier2_large` | $0.015 | 1.5 ± 0.4s | 0.90 |
+| `tier2_small` | $0.001 | 0.3 ± 0.08s | 0.75 |
+| `open_source` | $0.0005 | 0.8 ± 0.3s | 0.70 |
+
+## Training Results
+
+_Placeholder — run `python scripts/demo_notebook.py` to generate results._
+
+Expected outcome after 100k PPO steps:
+
+| Strategy | Mean Episode Reward | Mean Cost (USD) |
+|---|---|---|
+| Random | ~baseline | ~$2.50 |
+| Round-Robin | ~baseline | ~$2.10 |
+| Cheapest-First | cost-optimal | ~$0.50 |
+| **PPO Agent** | **best** | **~$0.80** |
+
+The PPO agent learns to route cheap/simple prompts to `open_source` or `tier2_small` while reserving expensive models for high-complexity, high-quality-required requests.
 
 ## Customization
 
-### Language Support
+### Swap in real model configs
 
-The template ships language-agnostic. Anywhere you see `# CUSTOMIZE:` in the workflow files, replace the placeholder commands with your own:
+```python
+from llm_router_env import LLMRouterEnv, ModelConfig
 
-| Placeholder | Example (Go) | Example (Node) | Example (Python) |
-|---|---|---|---|
-| `your-build-command` | `go build ./...` | `npm run build` | `python -m py_compile *.py` |
-| `your-lint-command` | `go vet ./...` | `npm run lint` | `ruff check .` |
-| `your-test-command` | `go test ./...` | `npm test` | `pytest` |
+models = [
+    ModelConfig("gpt-4o",       cost_per_call=0.025, latency_mean=1.8, latency_std=0.4, quality_score=0.96),
+    ModelConfig("gpt-4o-mini",  cost_per_call=0.0006, latency_mean=0.4, latency_std=0.1, quality_score=0.81),
+    ModelConfig("claude-sonnet", cost_per_call=0.012, latency_mean=1.2, latency_std=0.3, quality_score=0.92),
+    ModelConfig("claude-haiku",  cost_per_call=0.0008, latency_mean=0.3, latency_std=0.07, quality_score=0.78),
+]
+env = LLMRouterEnv(models=models)
+```
 
-### Org Membership Check
+### Tune the reward function
 
-`claude-auto-assign.yml` verifies the issue author is an org member before triggering Claude. To change this:
+```python
+from llm_router_env import LLMRouterEnv, RewardConfig
 
-- **Open to everyone:** Remove the org membership check entirely
-- **Specific users:** Replace with a username allowlist
-- **Label-based:** Trigger only on issues with a specific label
+env = LLMRouterEnv(reward_config=RewardConfig(
+    cost_weight=2.0,      # penalize cost more heavily
+    quality_weight=1.0,   # reward quality more
+    latency_penalty=5.0,  # strict SLA enforcement
+    sla_threshold=0.5,    # 500ms SLA
+))
+```
 
-### PR Merge Strategy
+### Register via gymnasium.make
 
-The shepherd uses `--rebase` by default. Change to `--squash` or `--merge` in `claude-pr-shepherd.yml` to match your preference.
+```python
+import gymnasium as gym
+import llm_router_env  # registers LLMRouter-v0
 
-### Proactive Scanner Frequency
-
-Default: hourly. Adjust the cron in `claude-proactive.yml`:
-- `0 */4 * * *` — every 4 hours
-- `0 9 * * 1-5` — weekdays at 9am
-- Remove entirely if you only want human-created issues
-
-## Secrets Reference
-
-| Secret | Required | Used By |
-|---|---|---|
-| `ANTHROPIC_API_KEY` | Yes | All Claude workflows |
-| `GITHUB_TOKEN` | Auto-provided | All workflows (GitHub Actions default) |
-
-## Design Principles
-
-**Closed loop.** Every output feeds back into the system. Merged PRs trigger tags. Proactive scans create issues. Issues trigger implementations.
-
-**Human steering.** Humans create issues and set priorities. They can review PRs before the shepherd merges, or let it run fully autonomous. The level of oversight is a dial, not a switch.
-
-**Fail safe.** Every workflow is designed to do nothing rather than do harm. If CI is red, the shepherd waits. If the build breaks, Claude won't merge. If the proactive scanner finds nothing, it creates no issues.
-
-**One PR at a time.** The shepherd processes PRs sequentially to avoid merge conflicts and maintain a clean history.
-
-**Conventional commits.** The auto-tagger relies on [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `BREAKING CHANGE`) to determine version bumps. Claude is instructed to follow this convention in `CLAUDE.md`.
-
-## What this is NOT
-
-This is not a hosted service, a SaaS product, or a managed platform. It's 6 YAML files. You own the workflows, you control the prompts, you pay Anthropic directly for API usage. There's no middleman and no vendor lock-in beyond the Claude API itself.
-
-## Credits
-
-Extracted from [Uncompact](https://github.com/supermodeltools/Uncompact) by [Grey Newell](https://github.com/greynewell).
+env = gym.make("LLMRouter-v0", episode_length=500, budget=5.0)
+```
 
 ## License
 

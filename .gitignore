@@ -14,8 +14,15 @@ Thumbs.db
 .env.local
 .env.*.local
 
-# Build artifacts (CUSTOMIZE: add your language-specific patterns)
-# Go: /bin/ /vendor/
-# Node: node_modules/ dist/ .next/
-# Python: __pycache__/ *.pyc .venv/ venv/
-# Rust: target/
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+.pytest_cache/
+*.zip
+training_curves.png
