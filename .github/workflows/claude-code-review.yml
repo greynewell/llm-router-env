@@ -34,7 +34,12 @@ jobs:
 
             Post review comments inline on the diff using the GitHub API.
             Be concise. Focus on significant issues only.
-            # CUSTOMIZE: Add stack-specific review criteria here
+            Additionally, for this Python/Gymnasium/Stable-Baselines3 codebase, also check:
+            4. Gymnasium API compliance — reset() must return (obs, info) tuple (Gymnasium 1.0+, not just obs); step() must return (obs, reward, terminated, truncated, info) 5-tuple, not the legacy 4-tuple
+            5. Reward function correctness — the reward formula must match the spec: r = -cost_weight * cost + quality_weight * quality - latency_penalty * max(0, latency - sla_threshold)
+            6. Action/observation space definitions — action space must be Discrete(n_models); observation space must be Box with the correct shape (prompt_length, prompt_complexity, queue_depths per model, time_of_day, budget_remaining)
+            7. No hardcoded model configs — new models must be defined in llm_router_env/models.py, not inline in other files
+            8. Test coverage — any changes to env.py, reward.py, or models.py must include corresponding pytest tests
 
             After posting inline comments, submit a formal review decision using the GitHub API.
             Determine whether blocking issues were found (significant bugs, security vulnerabilities, or breaking changes).
