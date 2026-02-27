@@ -38,19 +38,25 @@ class TrafficGenerator:
 
     def sample(self, time_of_day: float) -> PromptRequest:
         """
-        Sample a prompt request.
+        Sample a prompt request, adjusted for time-of-day load patterns.
 
         Args:
             time_of_day: Normalized time 0-1 (0=midnight, 0.5=noon, 1=midnight).
 
         Returns:
-            PromptRequest with sampled features.
+            PromptRequest with sampled features scaled by current load.
         """
-        complexity = float(self.rng.beta(self.complexity_alpha, self.complexity_beta))
+        load = self.load_factor(time_of_day)
+
+        complexity_raw = float(self.rng.beta(self.complexity_alpha, self.complexity_beta))
+        # During high load, prompts tend to be more complex
+        complexity = float(np.clip(complexity_raw + (load - 0.5) * 0.2, 0.0, 1.0))
+
         length = float(self.rng.beta(self.length_alpha, self.length_beta))
 
-        # High-complexity prompts more likely to need high quality
-        quality_base = 0.5 + 0.4 * complexity
+        # High-complexity prompts more likely to need high quality;
+        # higher load also shifts quality requirements upward
+        quality_base = 0.5 + 0.4 * complexity + 0.1 * (load - 0.5)
         quality_noise = self.rng.normal(0, 0.05)
         quality_required = float(np.clip(quality_base + quality_noise, 0.0, 1.0))
 
