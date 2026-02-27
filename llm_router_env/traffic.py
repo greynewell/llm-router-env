@@ -70,10 +70,11 @@ class TrafficGenerator:
         """
         Compute load factor at the given time of day (0-1).
 
-        Uses a sinusoidal pattern peaking at business hours (~0.375 = 9am)
-        with added noise.
+        Uses a deterministic sinusoidal pattern peaking at business hours
+        (~0.375 = 9am).  Stochasticity is intentionally kept out of this
+        method so that callers with seeded RNGs see a stable RNG draw count
+        and can reproduce trajectories exactly.
         """
         # Peak around 9am (0.375 of day), trough around 3am (0.125)
         base = 0.5 + 0.4 * np.sin(2 * np.pi * (time_of_day - 0.125))
-        noise = self.rng.normal(0, 0.05)
-        return float(np.clip(base + noise, 0.1, 1.0))
+        return float(np.clip(base, 0.1, 1.0))

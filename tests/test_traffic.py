@@ -1,7 +1,6 @@
 """Tests for TrafficGenerator — time-of-day load variation."""
 
 import numpy as np
-import pytest
 
 from llm_router_env.traffic import TrafficGenerator
 
@@ -15,16 +14,14 @@ class TestLoadFactor:
         gen = make_generator()
         for t in np.linspace(0.0, 1.0, 20):
             lf = gen.load_factor(t)
-            assert 0.0 <= lf <= 1.0, f"load_factor({t}) = {lf} out of [0, 1]"
+            assert 0.1 <= lf <= 1.0, f"load_factor({t}) = {lf} out of [0.1, 1]"
 
     def test_load_factor_peak_business_hours(self):
         """Load factor near 9am (0.375) should exceed load at 3am (0.125)."""
-        rng = np.random.default_rng(42)
-        gen = TrafficGenerator(rng=rng)
-        # Suppress noise by averaging many samples
-        n = 200
-        morning = np.mean([gen.load_factor(0.375) for _ in range(n)])
-        night = np.mean([gen.load_factor(0.125) for _ in range(n)])
+        gen = make_generator()
+        # load_factor is deterministic — single call suffices
+        morning = gen.load_factor(0.375)
+        night = gen.load_factor(0.125)
         assert morning > night, (
             f"Expected higher load at 9am ({morning:.3f}) than at 3am ({night:.3f})"
         )
