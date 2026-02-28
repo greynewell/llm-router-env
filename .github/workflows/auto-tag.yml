@@ -27,6 +27,13 @@ jobs:
           PATCH=$(echo $LATEST | cut -d. -f3)
 
           # Scan all commits in range since last tag for highest-precedence bump
+          # Guard: use full history if LATEST is not a real git ref (e.g. v0.0.0 fallback)
+          if git rev-parse -q --verify "$LATEST" > /dev/null 2>&1; then
+            LOG_RANGE="${LATEST}..HEAD"
+          else
+            LOG_RANGE="HEAD"
+          fi
+
           BUMP="none"
           while IFS= read -r MSG; do
             if echo "$MSG" | grep -qE "BREAKING CHANGE|^[a-z]+(\(.+\))?!:"; then
@@ -37,7 +44,7 @@ jobs:
             elif echo "$MSG" | grep -qE "^fix(\(.+\))?:" && [ "$BUMP" != "minor" ]; then
               BUMP="patch"
             fi
-          done < <(git log "${LATEST}..HEAD" --pretty=%s)
+          done < <(git log "$LOG_RANGE" --pretty=%s)
 
           if [ "$BUMP" = "major" ]; then
             MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0
@@ -46,7 +53,7 @@ jobs:
           elif [ "$BUMP" = "patch" ]; then
             PATCH=$((PATCH + 1))
           else
-            echo "No version bump needed in range ${LATEST}..HEAD"
+            echo "No version bump needed in range $LOG_RANGE"
             exit 0
           fi
 
