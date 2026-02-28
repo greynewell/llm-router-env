@@ -135,13 +135,13 @@ class LLMRouterEnv(gym.Env):
         # Advance time (1 step = ~1 minute of simulated time, 1440 steps = 1 day)
         self._time_of_day = (self._time_of_day + 1.0 / 1440.0) % 1.0
 
-        # Update queue depths: selected model gets a small load spike, others decay
+        # Update queue depths: existing load decays, then selected model gets a load spike
+        decay = self._rng.uniform(0.9, 0.98, size=len(self.models))
+        self._queue_depths = (self._queue_depths * decay).astype(np.float32)
         self._queue_depths[action] = min(
             self.max_queue_depth,
             self._queue_depths[action] + self._rng.exponential(2.0),
         )
-        decay = self._rng.uniform(0.9, 0.98, size=len(self.models))
-        self._queue_depths = (self._queue_depths * decay).astype(np.float32)
 
         current_quality_required = self._current_quality_required
         reward = compute_reward(cost, quality, latency, self.reward_config, current_quality_required)
