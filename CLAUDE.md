@@ -46,11 +46,21 @@ Use [Conventional Commits](https://www.conventionalcommits.org/):
 
 Always create PRs using `gh pr create`. Never substitute a compare link.
 
+Always include `Closes #ISSUE_NUMBER` in the PR body so the linked issue is auto-closed when the PR is merged.
+
 ```
 gh pr create \
   --repo OWNER/REPO \
   --title "..." \
-  --body "..." \
+  --body "$(cat <<'EOF'
+## Summary
+...
+
+Closes #ISSUE_NUMBER
+
+Generated with [Claude Code](https://claude.ai/code)
+EOF
+)" \
   --base main \
   --head <branch>
 ```
