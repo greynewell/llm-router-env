@@ -14,7 +14,7 @@ permissions:
   pull-requests: write
   issues: write
   id-token: write
-  actions: read
+  actions: write
 
 jobs:
   shepherd:
@@ -26,7 +26,7 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ secrets.GH_WORKFLOW_TOKEN }}
           allowed_bots: "claude[bot],github-actions[bot]"
-          claude_args: '--allowedTools "Bash(gh pr list:*),Bash(gh pr view:*),Bash(gh pr checks:*),Bash(gh pr merge:*),Bash(gh pr comment:*),Bash(gh pr review:*),Bash(gh api:*),Bash(gh issue:*),Bash(git fetch:*),Bash(git log:*),Bash(git diff:*),Bash(git status:*),Read,Glob,Grep"'
+          claude_args: '--allowedTools "Bash(gh pr list:*),Bash(gh pr view:*),Bash(gh pr checks:*),Bash(gh pr merge:*),Bash(gh pr comment:*),Bash(gh pr review:*),Bash(gh api:*),Bash(gh issue:*),Bash(gh workflow run:*),Bash(git fetch:*),Bash(git log:*),Bash(git diff:*),Bash(git status:*),Read,Glob,Grep"'
           prompt: |
             You are a PR shepherd for the repo ${{ github.repository }}.
 
@@ -57,6 +57,19 @@ jobs:
                   gh pr merge <number> --repo ${{ github.repository }} --rebase --delete-branch
             5. If reviewDecision is CHANGES_REQUESTED, post a comment:
                gh pr comment <number> --repo ${{ github.repository }} --body "@claude please address the review feedback and push an update"
-            6. If reviewDecision is null or REVIEW_REQUIRED, skip and wait for the review workflow to complete
+            6. If reviewDecision is null or REVIEW_REQUIRED:
+               a. Fetch the reviews for this PR:
+                  gh api repos/${{ github.repository }}/pulls/<number>/reviews
+               b. If the reviews array is empty (no review has ever been posted):
+                  - Get the PR's head SHA:
+                    headSha=$(gh pr view <number> --repo ${{ github.repository }} --json headRefOid --jq '.headRefOid')
+                  - Check if the code-review workflow is already in_progress for this head SHA:
+                    gh api "repos/${{ github.repository }}/actions/workflows/claude-code-review.yml/runs?status=in_progress" --jq ".workflow_runs[].head_sha" | grep -q "$headSha"
+                  - If a matching in_progress run exists: log "Review workflow already running for PR #<number>, skipping" and skip.
+                  - If NOT already running: trigger the review workflow:
+                    gh workflow run claude-code-review.yml --repo ${{ github.repository }} -f pr_number=<number>
+                    If the trigger command fails for any reason, fall back to posting a comment:
+                    gh pr comment <number> --repo ${{ github.repository }} --body "@claude please review this PR"
+               c. If reviews exist but reviewDecision is still REVIEW_REQUIRED, log "Review exists but no decision yet for PR #<number>, skipping" and skip.
 
             Use --repo ${{ github.repository }} on every gh command.
