@@ -65,9 +65,11 @@ When creating a GitHub issue, always include `@claude` at the end of the body:
 
 ## Self-Improvement Loop
 
+> **Note:** The loop is supervised, not fully autonomous. A human must approve each PR before it can be merged.
+
 1. `claude-proactive.yml` (hourly) and `claude-self-improve.yml` (weekly) scan for issues
 2. Issues trigger `claude-auto-assign.yml` → `claude.yml` implements them
 3. `claude-code-review.yml` reviews the PR
-4. `claude-pr-shepherd.yml` merges when CI passes
+4. `claude-pr-shepherd.yml` merges when CI passes **and at least one human has approved** (bot approvals are excluded)
 5. `auto-tag.yml` tags the release
 6. Repeat
