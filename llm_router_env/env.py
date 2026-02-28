@@ -60,6 +60,11 @@ class LLMRouterEnv(gym.Env):
         """
         super().__init__()
 
+        if budget <= 0:
+            raise ValueError(f"budget must be > 0, got {budget}")
+        if max_queue_depth <= 0:
+            raise ValueError(f"max_queue_depth must be > 0, got {max_queue_depth}")
+
         self.models = models if models is not None else DEFAULT_MODELS
         self.reward_config = reward_config if reward_config is not None else RewardConfig()
         self.episode_length = episode_length

@@ -1,5 +1,6 @@
 """Tests for LLMRouterEnv — env checker and basic step/reset."""
 
+import pytest
 import numpy as np
 from gymnasium.utils.env_checker import check_env
 
@@ -10,6 +11,28 @@ def make_env(**kwargs) -> LLMRouterEnv:
     env = LLMRouterEnv(seed=42, **kwargs)
     env.reset(seed=42)
     return env
+
+
+class TestInitValidation:
+    def test_zero_budget_raises(self):
+        with pytest.raises(ValueError, match="budget must be > 0"):
+            LLMRouterEnv(budget=0)
+
+    def test_negative_budget_raises(self):
+        with pytest.raises(ValueError, match="budget must be > 0"):
+            LLMRouterEnv(budget=-1.0)
+
+    def test_zero_max_queue_depth_raises(self):
+        with pytest.raises(ValueError, match="max_queue_depth must be > 0"):
+            LLMRouterEnv(max_queue_depth=0)
+
+    def test_negative_max_queue_depth_raises(self):
+        with pytest.raises(ValueError, match="max_queue_depth must be > 0"):
+            LLMRouterEnv(max_queue_depth=-5.0)
+
+    def test_valid_params_do_not_raise(self):
+        env = LLMRouterEnv(budget=1.0, max_queue_depth=10.0)
+        env.close()
 
 
 class TestEnvChecker:
