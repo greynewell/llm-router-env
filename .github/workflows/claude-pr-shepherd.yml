@@ -51,8 +51,12 @@ jobs:
                   gh api repos/${{ github.repository }}/pulls/<number>/reviews
                b. From the returned JSON array, count entries where state is "APPROVED"
                   AND user.login does NOT end with "[bot]". These are human approvals.
-               c. If human approval count is 0, log "waiting for human approval on PR #<number>"
-                  and skip this PR entirely (do NOT merge).
+               c. If human approval count is 0:
+                  - Fetch existing PR comments to avoid duplicate notifications:
+                    gh pr view <number> --repo ${{ github.repository }} --json comments --jq '[.comments[].body] | join("\n")'
+                  - Only post a comment if none of the existing comments contain the text "ready for human review before it can be merged":
+                    gh pr comment <number> --repo ${{ github.repository }} --body "CI passed and bot review is approved. This PR is ready for human review before it can be merged."
+                  - Skip this PR entirely (do NOT merge).
                d. If at least one human approval exists, merge:
                   gh pr merge <number> --repo ${{ github.repository }} --rebase --delete-branch
             5. If reviewDecision is CHANGES_REQUESTED, post a comment:
