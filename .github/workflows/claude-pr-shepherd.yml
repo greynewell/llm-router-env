@@ -53,8 +53,12 @@ jobs:
                   AND user.login does NOT end with "[bot]". These are human approvals.
                c. If human approval count is 0, log "waiting for human approval on PR #<number>"
                   and skip this PR entirely (do NOT merge).
-               d. If at least one human approval exists, merge:
-                  gh pr merge <number> --repo ${{ github.repository }} --rebase --delete-branch
+               d. If at least one human approval exists, attempt to merge:
+                  Run: gh pr merge <number> --repo ${{ github.repository }} --rebase --delete-branch
+                  Capture both stdout and stderr from this command. If the command fails (non-zero
+                  exit code), post a comment on the PR explaining the failure:
+                  gh pr comment <number> --repo ${{ github.repository }} --body "Merge attempt failed: <insert the captured error output here>. Please investigate and resolve manually."
+                  If the merge succeeds, no additional comment is needed.
             5. If reviewDecision is CHANGES_REQUESTED, post a comment:
                gh pr comment <number> --repo ${{ github.repository }} --body "@claude please address the review feedback and push an update"
             6. If reviewDecision is null or REVIEW_REQUIRED, skip and wait for the review workflow to complete
