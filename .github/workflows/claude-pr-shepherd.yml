@@ -47,13 +47,19 @@ jobs:
             3. If mergeable is false (merge conflicts exist), post a comment and skip to the next PR:
                gh pr comment <number> --repo ${{ github.repository }} --body "@claude this PR has merge conflicts. Please rebase onto main and push an update."
             4. If ALL checks passed and reviewDecision is APPROVED:
-               a. Fetch the PR reviews list:
+               a. Fetch the PR's commits list to get the most recent commit timestamp:
+                  gh api repos/${{ github.repository }}/pulls/<number>/commits
+                  Take the last entry's commit.committer.date as most_recent_commit_time.
+               b. Fetch the PR reviews list:
                   gh api repos/${{ github.repository }}/pulls/<number>/reviews
-               b. From the returned JSON array, count entries where state is "APPROVED"
-                  AND user.login does NOT end with "[bot]". These are human approvals.
-               c. If human approval count is 0, log "waiting for human approval on PR #<number>"
+               c. From the returned JSON array, count entries where state is "APPROVED"
+                  AND user.login does NOT end with "[bot]"
+                  AND submitted_at is strictly after most_recent_commit_time.
+                  These are valid post-push human approvals.
+               d. If valid human approval count is 0, log "waiting for human approval on PR #<number>
+                  (no human approval found after latest commit at <most_recent_commit_time>)"
                   and skip this PR entirely (do NOT merge).
-               d. If at least one human approval exists, merge:
+               e. If at least one valid post-push human approval exists, merge:
                   gh pr merge <number> --repo ${{ github.repository }} --rebase --delete-branch
             5. If reviewDecision is CHANGES_REQUESTED, post a comment:
                gh pr comment <number> --repo ${{ github.repository }} --body "@claude please address the review feedback and push an update"
