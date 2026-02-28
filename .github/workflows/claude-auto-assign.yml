@@ -28,13 +28,22 @@ jobs:
 
           # CUSTOMIZE: Authorization check — pick one:
 
-          # Option 1: Restrict to specific username(s)
-          ALLOWED_USERS="greynewell"
-          if echo "$ALLOWED_USERS" | grep -qw "$ISSUE_AUTHOR"; then
-            AUTHORIZED=true
-          else
-            AUTHORIZED=false
-          fi
+          # Bot allowlist: trusted automation bots are authorized automatically
+          # This enables the self-improvement loop (scanner-created issues reach Claude)
+          case "$ISSUE_AUTHOR" in
+            "github-actions[bot]"|"claude[bot]")
+              AUTHORIZED=true
+              ;;
+            *)
+              # Option 1: Restrict to specific username(s)
+              ALLOWED_USERS="greynewell"
+              if echo "$ALLOWED_USERS" | grep -qw "$ISSUE_AUTHOR"; then
+                AUTHORIZED=true
+              else
+                AUTHORIZED=false
+              fi
+              ;;
+          esac
 
           # Option 2: Open to all users (uncomment to use)
           # AUTHORIZED=true
