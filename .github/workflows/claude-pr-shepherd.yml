@@ -36,9 +36,9 @@ jobs:
             For each non-draft PR:
             1. Check CI: gh pr checks <number> --repo ${{ github.repository }}
                - If ANY check is in pending, in_progress, or queued state → log "CI still running, skipping PR #<number>" and skip this PR entirely (do NOT merge)
-               - If ANY check has a status of failure, action_required, timed_out, or stale → post a comment and skip
+               - If ANY check has a status of failure, action_required, timed_out, stale, cancelled, or startup_failure → post a comment and skip
                - Treat skipped and neutral as passing terminal states (these indicate a job legitimately did not need to run)
-               - Only continue to the next steps if ALL checks are in a terminal state AND none has failed/timed_out/action_required/stale
+               - Only continue to the next steps if ALL checks are in a terminal state AND none has failed/timed_out/action_required/stale/cancelled/startup_failure
                  (valid passing terminal states: pass, success, skipped, neutral)
             2. Check review status: gh pr view <number> --repo ${{ github.repository }} --json reviewDecision,mergeable
             3. If mergeable is false (merge conflicts exist), post a comment and skip to the next PR:
