@@ -49,7 +49,7 @@ jobs:
 
           if [ "$AUTHORIZED" = "true" ]; then
             gh issue comment $ISSUE_NUMBER --repo $REPO \
-              --body "@claude please implement this issue"
+              --body "@claude please implement this issue. Include Closes #${ISSUE_NUMBER} in your PR body to auto-close this issue on merge."
           else
             echo "User $ISSUE_AUTHOR not authorized, skipping"
           fi
