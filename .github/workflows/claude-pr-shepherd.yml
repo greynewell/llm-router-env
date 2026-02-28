@@ -26,7 +26,7 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ secrets.GH_WORKFLOW_TOKEN }}
           allowed_bots: "claude[bot],github-actions[bot]"
-          claude_args: '--allowedTools "Bash(gh pr list:*),Bash(gh pr view:*),Bash(gh pr checks:*),Bash(gh pr merge:*),Bash(gh pr comment:*),Bash(gh pr review:*),Bash(gh api:*),Bash(gh issue:*),Bash(gh workflow run:*),Bash(git fetch:*),Bash(git log:*),Bash(git diff:*),Bash(git status:*),Read,Glob,Grep"'
+          claude_args: '--allowedTools "Bash(gh pr list:*),Bash(gh pr view:*),Bash(gh pr checks:*),Bash(gh pr merge:*),Bash(gh pr comment:*),Bash(gh pr review:*),Bash(gh api:*),Bash(gh issue:*),Bash(git fetch:*),Bash(git log:*),Bash(git diff:*),Bash(git status:*),Read,Glob,Grep"'
           prompt: |
             You are a PR shepherd for the repo ${{ github.repository }}.
 
@@ -66,10 +66,8 @@ jobs:
                   - Check if the code-review workflow is already in_progress for this head SHA:
                     gh api "repos/${{ github.repository }}/actions/workflows/claude-code-review.yml/runs?status=in_progress" --jq ".workflow_runs[].head_sha" | grep -q "$headSha"
                   - If a matching in_progress run exists: log "Review workflow already running for PR #<number>, skipping" and skip.
-                  - If NOT already running: trigger the review workflow:
-                    gh workflow run claude-code-review.yml --repo ${{ github.repository }} -f pr_number=<number>
-                    If the trigger command fails for any reason, fall back to posting a comment, but only if one has not already been posted:
-                    Check for existing review request comments: gh api repos/${{ github.repository }}/issues/<number>/comments --jq '[.[] | select(.body | contains("@claude please review this PR"))] | length'
+                  - If NOT already running: check for existing review request comments:
+                    gh api repos/${{ github.repository }}/issues/<number>/comments --jq '[.[] | select(.body | contains("@claude please review this PR"))] | length'
                     If the count is 0, post: gh pr comment <number> --repo ${{ github.repository }} --body "@claude please review this PR"
                     If the count is greater than 0, log "Review comment already posted for PR #<number>, skipping" and skip.
                c. If reviews exist but reviewDecision is still REVIEW_REQUIRED, log "Review exists but no decision yet for PR #<number>, skipping" and skip.
