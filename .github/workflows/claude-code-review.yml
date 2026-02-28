@@ -31,11 +31,31 @@ jobs:
             1. Correctness and logic errors
             2. Security vulnerabilities
             3. Breaking changes
-
-            Post review comments inline on the diff using the GitHub API.
-            Be concise. Focus on significant issues only.
             # CUSTOMIZE: Add stack-specific review criteria here
 
+            ## Step 1: Fetch the PR head SHA
+            Run this command to get the commit SHA required for inline comments:
+              gh pr view ${{ github.event.pull_request.number }} --json headRefOid --jq .headRefOid
+            Save this value — it is the commit_id for all inline comment API calls.
+
+            ## Step 2: Post inline comments on specific diff lines
+            For each significant issue found, post an inline comment using:
+              gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/comments \
+                --method POST \
+                --field commit_id=<headRefOid from Step 1> \
+                --field path=<relative file path, e.g. src/main.py> \
+                --field line=<line number in the file> \
+                --field side=RIGHT \
+                --field body='<concise comment text>'
+            Field reference:
+            - commit_id: the headRefOid SHA from Step 1 (required)
+            - path: relative path to the file being commented on (required)
+            - line: the line number in the file the comment applies to (required)
+            - side: RIGHT for added or context lines, LEFT for deleted lines
+            - body: the comment text
+            Be concise. Focus on significant issues only.
+
+            ## Step 3: Submit the overall review decision
             After posting inline comments, submit a formal review decision using the GitHub API.
             Determine whether blocking issues were found (significant bugs, security vulnerabilities, or breaking changes).
             If no blocking issues:
