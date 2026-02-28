@@ -14,7 +14,7 @@ jobs:
     steps:
       - name: Check authorization and trigger Claude
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.GH_WORKFLOW_TOKEN }}
           ISSUE_BODY: ${{ github.event.issue.body }}
           ISSUE_AUTHOR: ${{ github.event.issue.user.login }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
