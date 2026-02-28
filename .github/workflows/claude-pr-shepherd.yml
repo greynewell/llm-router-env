@@ -19,6 +19,7 @@ permissions:
 jobs:
   shepherd:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Run Claude PR Shepherd
         uses: anthropics/claude-code-action@v1
