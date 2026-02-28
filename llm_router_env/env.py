@@ -117,8 +117,10 @@ class LLMRouterEnv(gym.Env):
         return obs, {}
 
     def step(self, action: int) -> tuple[np.ndarray, float, bool, bool, dict]:
-        assert self._rng is not None, "Call reset() before step()"
-        assert self.action_space.contains(action), f"Invalid action: {action}"
+        if self._rng is None:
+            raise RuntimeError("Call reset() before step()")
+        if not self.action_space.contains(action):
+            raise ValueError(f"Invalid action: {action!r}, expected int in [0, {len(self.models) - 1}]")
 
         model = self.models[action]
         prompt_complexity = self._current_prompt_complexity
