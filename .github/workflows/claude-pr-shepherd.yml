@@ -44,8 +44,11 @@ jobs:
                - A check counts as passing if: status is "completed" AND conclusion is "success", "neutral", or "skipped"
                - Only continue to the next steps if ALL checks are in a passing terminal state (status "completed" + conclusion "success"/"neutral"/"skipped")
             2. Check review status: gh pr view <number> --repo ${{ github.repository }} --json reviewDecision,mergeable
-            3. If mergeable is false (merge conflicts exist), post a comment and skip to the next PR:
-               gh pr comment <number> --repo ${{ github.repository }} --body "@claude this PR has merge conflicts. Please rebase onto main and push an update."
+            3. Check the mergeable field (it is a string enum, not a boolean):
+               - If "CONFLICTING" (merge conflicts exist), post a comment and skip to the next PR:
+                 gh pr comment <number> --repo ${{ github.repository }} --body "@claude this PR has merge conflicts. Please rebase onto main and push an update."
+               - If "UNKNOWN" (GitHub has not yet computed merge status), log "mergeability not yet computed, skipping PR #<number>" and skip this PR entirely (do NOT merge)
+               - Only continue to step 4 if mergeable is "MERGEABLE"
             4. If ALL checks passed and reviewDecision is APPROVED:
                a. Fetch the PR reviews list:
                   gh api repos/${{ github.repository }}/pulls/<number>/reviews
