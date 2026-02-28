@@ -25,8 +25,15 @@ class TestObservationSpace:
         env = make_env()
         obs, _ = env.reset(seed=0)
         n_models = len(DEFAULT_MODELS)
-        expected_dim = 2 + n_models + 2
+        expected_dim = 2 + n_models + 3
         assert obs.shape == (expected_dim,), f"Expected shape ({expected_dim},), got {obs.shape}"
+
+    def test_obs_includes_quality_required(self):
+        """Last obs dimension (quality_required) should be in [0, 1]."""
+        env = make_env()
+        obs, _ = env.reset(seed=0)
+        quality_required = obs[-1]
+        assert 0.0 <= quality_required <= 1.0, f"quality_required out of range: {quality_required}"
 
     def test_obs_dtype(self):
         env = make_env()
@@ -110,7 +117,7 @@ class TestStepReset:
         env = LLMRouterEnv(seed=0)
         env.reset(seed=0)
         _, _, _, _, info = env.step(0)
-        for key in ("cost", "quality", "latency", "model_name", "budget_remaining", "sla_violated"):
+        for key in ("cost", "quality", "latency", "model_name", "budget_remaining", "sla_violated", "quality_required"):
             assert key in info, f"Missing info key: {key}"
 
     def test_multiple_resets(self):
@@ -131,10 +138,34 @@ class TestStepReset:
 
 class TestRewardConfig:
     def test_custom_reward_config(self):
-        config = RewardConfig(cost_weight=2.0, quality_weight=1.0, latency_penalty=0.0)
+        config = RewardConfig(cost_weight=2.0, quality_weight=1.0, latency_penalty=0.0, quality_miss_penalty=0.0)
         env = LLMRouterEnv(reward_config=config, episode_length=10, seed=0)
         env.reset(seed=0)
         obs, reward, _, _, info = env.step(0)
-        # With zero latency penalty, reward = -2*cost + 1*quality
+        # With zero latency and quality miss penalty, reward = -2*cost + 1*quality
         expected = -2.0 * info["cost"] + 1.0 * info["quality"]
+        assert abs(reward - expected) < 1e-6
+
+    def test_quality_miss_penalty(self):
+        """quality_miss_penalty should lower reward when quality < quality_required."""
+        from llm_router_env.reward import compute_reward
+
+        config = RewardConfig(cost_weight=0.0, quality_weight=0.0, latency_penalty=0.0, quality_miss_penalty=2.0)
+        # quality below required: shortfall = 0.3, penalty = 2.0 * 0.3 = 0.6
+        reward = compute_reward(cost=0.0, quality=0.5, latency=0.0, config=config, quality_required=0.8)
+        assert abs(reward - (-2.0 * 0.3)) < 1e-6
+
+        # quality meets required: no penalty
+        reward_no_miss = compute_reward(cost=0.0, quality=0.9, latency=0.0, config=config, quality_required=0.8)
+        assert abs(reward_no_miss - 0.0) < 1e-6
+
+    def test_quality_miss_penalty_in_env(self):
+        """Environment applies quality_miss_penalty when quality falls short of quality_required."""
+        config = RewardConfig(cost_weight=0.0, quality_weight=0.0, latency_penalty=0.0, quality_miss_penalty=5.0)
+        env = LLMRouterEnv(reward_config=config, episode_length=10, seed=0)
+        obs, _ = env.reset(seed=0)
+        # obs[-1] is quality_required for the first prompt (the one step() will serve)
+        quality_required = float(obs[-1])
+        _, reward, _, _, info = env.step(0)
+        expected = -5.0 * max(0.0, quality_required - info["quality"])
         assert abs(reward - expected) < 1e-6

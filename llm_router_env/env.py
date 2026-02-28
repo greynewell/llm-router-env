@@ -27,6 +27,7 @@ class LLMRouterEnv(gym.Env):
         [2..N+1] queue_depths   — normalized queue depth per model (0-1)
         [N+2] time_of_day       — normalized 0-1
         [N+3] budget_remaining  — normalized 0-1
+        [N+4] quality_required  — minimum quality required for this request (0-1)
 
     Action space (Discrete):
         Index into the list of available models.
@@ -34,6 +35,7 @@ class LLMRouterEnv(gym.Env):
     Reward:
         r = -cost_weight * cost + quality_weight * quality
             - latency_penalty * max(0, latency - sla_threshold)
+            - quality_miss_penalty * max(0, quality_required - quality)
     """
 
     metadata = {"render_modes": []}
@@ -66,8 +68,8 @@ class LLMRouterEnv(gym.Env):
         self._seed = seed
 
         n_models = len(self.models)
-        # obs: [prompt_length, prompt_complexity, *queue_depths, time_of_day, budget_remaining]
-        obs_dim = 2 + n_models + 2
+        # obs: [prompt_length, prompt_complexity, *queue_depths, time_of_day, budget_remaining, quality_required]
+        obs_dim = 2 + n_models + 3
         self.observation_space = spaces.Box(
             low=0.0,
             high=1.0,
@@ -141,7 +143,7 @@ class LLMRouterEnv(gym.Env):
         decay = self._rng.uniform(0.9, 0.98, size=len(self.models))
         self._queue_depths = (self._queue_depths * decay).astype(np.float32)
 
-        reward = compute_reward(cost, quality, latency, self.reward_config)
+        reward = compute_reward(cost, quality, latency, self.reward_config, self._current_quality_required)
 
         # Sample next prompt
         prompt = self._traffic.sample(self._time_of_day)
@@ -189,7 +191,7 @@ class LLMRouterEnv(gym.Env):
         obs = np.concatenate([
             [self._current_prompt_length, self._current_prompt_complexity],
             queue_norm,
-            [self._time_of_day, budget_norm],
+            [self._time_of_day, budget_norm, self._current_quality_required],
         ]).astype(np.float32)
 
         return obs
