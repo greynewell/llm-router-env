@@ -11,8 +11,8 @@
 
 Single Gymnasium environment for RL-based LLM inference routing:
 - **Action space:** `Discrete(n_models)` — index into available models
-- **Observation space:** `Box` — prompt_length, prompt_complexity, queue_depths (per model), time_of_day, budget_remaining
-- **Reward:** `r = -cost_weight * cost + quality_weight * quality - latency_penalty * max(0, latency - sla_threshold)`
+- **Observation space:** `Box` — prompt_length, prompt_complexity, queue_depths (per model), time_of_day, budget_remaining, quality_required
+- **Reward:** `r = -cost_weight * cost + quality_weight * quality - latency_penalty * max(0, latency - sla_threshold) - quality_miss_penalty * max(0, quality_required - quality)`
 
 Key modules:
 - `llm_router_env/env.py` — core Gymnasium environment
