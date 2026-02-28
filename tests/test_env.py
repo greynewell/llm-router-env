@@ -163,9 +163,8 @@ class TestRewardConfig:
         """Environment applies quality_miss_penalty when quality falls short of quality_required."""
         config = RewardConfig(cost_weight=0.0, quality_weight=0.0, latency_penalty=0.0, quality_miss_penalty=5.0)
         env = LLMRouterEnv(reward_config=config, episode_length=10, seed=0)
-        obs, _ = env.reset(seed=0)
-        # obs[-1] is quality_required for the first prompt (the one step() will serve)
-        quality_required = float(obs[-1])
+        env.reset(seed=0)
         _, reward, _, _, info = env.step(0)
-        expected = -5.0 * max(0.0, quality_required - info["quality"])
+        # info["quality_required"] must reflect the current step's requirement, not the next prompt's
+        expected = -5.0 * max(0.0, info["quality_required"] - info["quality"])
         assert abs(reward - expected) < 1e-6
