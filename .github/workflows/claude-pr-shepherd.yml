@@ -44,8 +44,14 @@ jobs:
                - A check counts as passing if: status is "completed" AND conclusion is "success", "neutral", or "skipped"
                - Only continue to the next steps if ALL checks are in a passing terminal state (status "completed" + conclusion "success"/"neutral"/"skipped")
             2. Check review status: gh pr view <number> --repo ${{ github.repository }} --json reviewDecision,mergeable
-            3. If mergeable is false (merge conflicts exist), post a comment and skip to the next PR:
-               gh pr comment <number> --repo ${{ github.repository }} --body "@claude this PR has merge conflicts. Please rebase onto main and push an update."
+            3. If mergeable is false (merge conflicts exist):
+               a. Fetch existing PR comments:
+                  gh api repos/${{ github.repository }}/issues/<number>/comments
+               b. Check if any existing comment has a body containing the phrase "merge conflicts"
+                  AND was posted by a user whose login ends with "[bot]".
+               c. Only if no such comment exists, post:
+                  gh pr comment <number> --repo ${{ github.repository }} --body "@claude this PR has merge conflicts. Please rebase onto main and push an update."
+               d. Skip to the next PR.
             4. If ALL checks passed and reviewDecision is APPROVED:
                a. Fetch the PR reviews list:
                   gh api repos/${{ github.repository }}/pulls/<number>/reviews
@@ -55,8 +61,13 @@ jobs:
                   and skip this PR entirely (do NOT merge).
                d. If at least one human approval exists, merge:
                   gh pr merge <number> --repo ${{ github.repository }} --rebase --delete-branch
-            5. If reviewDecision is CHANGES_REQUESTED, post a comment:
-               gh pr comment <number> --repo ${{ github.repository }} --body "@claude please address the review feedback and push an update"
+            5. If reviewDecision is CHANGES_REQUESTED:
+               a. Fetch existing PR comments:
+                  gh api repos/${{ github.repository }}/issues/<number>/comments
+               b. Check if any existing comment has a body containing the phrase "review feedback"
+                  AND was posted by a user whose login ends with "[bot]".
+               c. Only if no such comment exists, post:
+                  gh pr comment <number> --repo ${{ github.repository }} --body "@claude please address the review feedback and push an update"
             6. If reviewDecision is null or REVIEW_REQUIRED, skip and wait for the review workflow to complete
 
             Use --repo ${{ github.repository }} on every gh command.
