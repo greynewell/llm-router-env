@@ -18,6 +18,7 @@ concurrency:
 jobs:
   claude-code-review:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     if: github.event.pull_request.draft == false
     steps:
       - name: Run Claude Code Review
