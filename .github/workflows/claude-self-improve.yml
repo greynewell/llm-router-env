@@ -29,6 +29,16 @@ jobs:
             You are the Claude Software Factory conducting its weekly deep self-improvement scan.
             This repo IS the factory — its workflows are the product. Improving them is the primary goal.
 
+            **Before anything else — issue-count gate:**
+            Run the following command and count the results:
+              gh issue list --state open --limit 50
+
+            If the count is 20 or more, output exactly:
+              "Backlog too large (N open issues), skipping scan to avoid overwhelming the factory"
+            replacing N with the actual count, then stop immediately — do not perform any passes or file any issues.
+
+            Only continue if the open issue count is fewer than 20.
+
             This scan runs once a week (Sundays) and performs deeper analysis than the hourly scanner.
             Take your time and be thorough.
 
