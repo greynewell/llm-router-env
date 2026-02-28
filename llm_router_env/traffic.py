@@ -75,6 +75,6 @@ class TrafficGenerator:
         method so that callers with seeded RNGs see a stable RNG draw count
         and can reproduce trajectories exactly.
         """
-        # Peak around 9am (0.375 of day), trough around 3am (0.125)
+        # Peak around 9am (0.375 of day), trough around 9pm (0.875); 3am (0.125) is the zero-crossing (load = 0.5)
         base = 0.5 + 0.4 * np.sin(2 * np.pi * (time_of_day - 0.125))
         return float(np.clip(base, 0.1, 1.0))
