@@ -143,7 +143,8 @@ class LLMRouterEnv(gym.Env):
         decay = self._rng.uniform(0.9, 0.98, size=len(self.models))
         self._queue_depths = (self._queue_depths * decay).astype(np.float32)
 
-        reward = compute_reward(cost, quality, latency, self.reward_config, self._current_quality_required)
+        current_quality_required = self._current_quality_required
+        reward = compute_reward(cost, quality, latency, self.reward_config, current_quality_required)
 
         # Sample next prompt
         prompt = self._traffic.sample(self._time_of_day)
@@ -160,7 +161,7 @@ class LLMRouterEnv(gym.Env):
             "latency": latency,
             "model_name": model.name,
             "budget_remaining": self._budget_remaining,
-            "quality_required": self._current_quality_required,
+            "quality_required": current_quality_required,
             "sla_violated": latency > self.reward_config.sla_threshold,
         }
 
