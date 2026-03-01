@@ -15,8 +15,10 @@ body:
     attributes:
       label: Additional context
       description: Anything else Claude should know — files to look at, constraints, related issues.
-  - type: markdown
+  - type: textarea
+    id: claude_trigger
     attributes:
-      value: |
-        ---
-        @claude please implement this
+      label: ''
+      value: '@claude please implement this'
+    validations:
+      required: true

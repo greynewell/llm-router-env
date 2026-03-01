@@ -20,8 +20,10 @@ body:
     attributes:
       label: Additional context
       description: Logs, screenshots, related code paths.
-  - type: markdown
+  - type: textarea
+    id: claude_trigger
     attributes:
-      value: |
-        ---
-        @claude please implement this
+      label: ''
+      value: '@claude please implement this'
+    validations:
+      required: true
