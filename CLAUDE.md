@@ -3,9 +3,9 @@
 ## Stack
 
 - Python 3.11+, Gymnasium 1.0+, Stable-Baselines3
-- Install: `pip install -e ".[dev]"`
-- Lint: `ruff check .`
-- Test: `pytest -x`
+- Install: `python3 -m pip install -e ".[dev]"`
+- Lint: `python3 -m ruff check .`
+- Test: `python3 -m pytest -x`
 
 ## Architecture
 
@@ -24,8 +24,8 @@ Key modules:
 
 Before committing:
 ```
-ruff check .
-pytest -x
+python3 -m ruff check .
+python3 -m pytest -x
 find .github/workflows -name '*.yml' -exec python3 -c "import yaml,sys; yaml.safe_load(open(sys.argv[1]))" {} \;
 ```
 
