@@ -8,11 +8,11 @@ Environment variables:
 Output: updates CHANGELOG.md in the current working directory.
 """
 
-from datetime import date
 import os
 import re
 import subprocess
 import sys
+from datetime import date
 
 
 # Commit types that map to Keep-a-Changelog sections
