@@ -53,8 +53,17 @@ jobs:
                   AND user.login does NOT end with "[bot]". These are human approvals.
                c. If human approval count is 0, log "waiting for human approval on PR #<number>"
                   and skip this PR entirely (do NOT merge).
-               d. If at least one human approval exists, merge:
-                  gh pr merge <number> --repo ${{ github.repository }} --rebase --delete-branch
+               d. If at least one human approval exists, attempt the rebase merge and handle failure:
+                  Run the merge command and capture whether it succeeds or fails:
+                    gh pr merge <number> --repo ${{ github.repository }} --rebase --delete-branch
+                  If the merge command FAILS (non-zero exit status):
+                  i.  Post a comment explaining the failure and requesting human intervention:
+                      gh pr comment <number> --repo ${{ github.repository }} --body "⚠️ **Automated merge failed** — the rebase merge could not be completed. This may be caused by a non-linear commit history incompatible with rebase, a branch protection rule, or a transient API error. Please merge manually or investigate and re-approve. (shepherd attempted at $(date -u +%Y-%m-%dT%H:%M:%SZ))"
+                  ii. Add a label to surface the failure (create the label first if it does not exist):
+                      gh api repos/${{ github.repository }}/labels --method POST --field name="merge-failed" --field color="b60205" --field description="Automated merge failed — needs human intervention" 2>/dev/null || true
+                      gh api repos/${{ github.repository }}/issues/<number>/labels --method POST --field labels[]="merge-failed"
+                  iii. Log "Merge failed for PR #<number>, skipping" and skip to the next PR.
+                  If the merge SUCCEEDS, continue as normal (branch deleted, PR closed).
             5. If reviewDecision is CHANGES_REQUESTED, post a comment:
                gh pr comment <number> --repo ${{ github.repository }} --body "@claude please address the review feedback and push an update"
             6. If reviewDecision is null or REVIEW_REQUIRED, skip and wait for the review workflow to complete
