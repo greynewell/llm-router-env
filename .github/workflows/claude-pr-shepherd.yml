@@ -39,6 +39,7 @@ jobs:
                - "status": one of "queued", "in_progress", "completed"
                - "conclusion": one of "success", "failure", "neutral", "cancelled", "skipped", "timed_out", "action_required" (only meaningful when status is "completed")
                Rules (evaluate using the JSON fields, not text patterns):
+               - If the checks JSON array has ZERO elements → log "no check runs found yet, skipping PR #<number>" and skip this PR entirely (do NOT merge)
                - If ANY check has status "queued" or "in_progress" → log "CI still running, skipping PR #<number>" and skip this PR entirely (do NOT merge)
                - If ANY check has status "completed" AND conclusion of "failure", "timed_out", "cancelled", or "action_required" → post a comment and skip
                - A check counts as passing if: status is "completed" AND conclusion is "success", "neutral", or "skipped"
