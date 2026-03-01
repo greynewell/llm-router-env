@@ -20,6 +20,13 @@ permissions:
 jobs:
   claude:
     runs-on: ubuntu-latest
+    # Authorization rules:
+    # - issue_comment on a plain issue: any user may invoke @claude
+    #   (pull_request field is absent on plain issues, which returns '' in GHA expressions)
+    # - issue_comment on a PR: owner or Bot only
+    # - pull_request_review_comment: owner or Bot only
+    # - pull_request_review: owner or Bot only
+    # - issues (opened/assigned): owner or Bot only
     if: |
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude') &&
         (github.event.issue.pull_request == '' ||
