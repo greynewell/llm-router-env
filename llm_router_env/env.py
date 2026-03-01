@@ -65,7 +65,7 @@ class LLMRouterEnv(gym.Env):
         self.episode_length = episode_length
         self.initial_budget = budget
         self.max_queue_depth = max_queue_depth
-        self._seed = seed
+        self._seed_seq = np.random.SeedSequence(seed) if seed is not None else None
 
         n_models = len(self.models)
         # obs: [prompt_length, prompt_complexity, *queue_depths, time_of_day, budget_remaining, quality_required]
@@ -100,8 +100,12 @@ class LLMRouterEnv(gym.Env):
         options: dict[str, Any] | None = None,
     ) -> tuple[np.ndarray, dict]:
         super().reset(seed=seed)
-        rng_seed = seed if seed is not None else self._seed
-        self._rng = np.random.default_rng(rng_seed)
+        if seed is not None:
+            self._rng = np.random.default_rng(seed)
+        elif self._seed_seq is not None:
+            self._rng = np.random.default_rng(self._seed_seq.spawn(1)[0])
+        else:
+            self._rng = np.random.default_rng()
         self._traffic = TrafficGenerator(rng=self._rng)
 
         self._step_count = 0

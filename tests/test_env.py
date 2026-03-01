@@ -136,6 +136,40 @@ class TestStepReset:
                 break
 
 
+class TestSeedSequence:
+    def test_seeded_env_produces_varied_episodes(self):
+        """Repeated reset() calls without explicit seed yield different observations."""
+        env = LLMRouterEnv(seed=42)
+        obs1, _ = env.reset()
+        obs2, _ = env.reset()
+        obs3, _ = env.reset()
+        assert not np.array_equal(obs1, obs2), "Episodes 1 and 2 should differ"
+        assert not np.array_equal(obs2, obs3), "Episodes 2 and 3 should differ"
+
+    def test_seeded_env_is_reproducible(self):
+        """Two envs with the same constructor seed produce the same episode sequence."""
+        env_a = LLMRouterEnv(seed=99)
+        env_b = LLMRouterEnv(seed=99)
+        for _ in range(3):
+            obs_a, _ = env_a.reset()
+            obs_b, _ = env_b.reset()
+            np.testing.assert_array_equal(obs_a, obs_b)
+
+    def test_unseeded_env_still_works(self):
+        """reset() on an unseeded env should not raise."""
+        env = LLMRouterEnv()
+        obs, _ = env.reset()
+        assert env.observation_space.contains(obs)
+
+    def test_explicit_reset_seed_overrides(self):
+        """Passing seed to reset() uses that seed directly, ignoring the spawn sequence."""
+        env = LLMRouterEnv(seed=42)
+        obs_a, _ = env.reset(seed=7)
+        env2 = LLMRouterEnv(seed=42)
+        obs_b, _ = env2.reset(seed=7)
+        np.testing.assert_array_equal(obs_a, obs_b)
+
+
 class TestRewardConfig:
     def test_custom_reward_config(self):
         config = RewardConfig(cost_weight=2.0, quality_weight=1.0, latency_penalty=0.0, quality_miss_penalty=0.0)
