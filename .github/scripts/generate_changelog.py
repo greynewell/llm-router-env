@@ -98,7 +98,7 @@ def update_changelog(tag: str, new_section: str) -> None:
             existing = f.read()
         m = re.search(r"\n## ", existing)
         if m:
-            content = existing[: m.start()] + "\n" + new_section + "\n" + existing[m.start() :]
+            content = existing[: m.start()] + "\n" + new_section + existing[m.start() :]
         else:
             content = existing.rstrip() + "\n\n" + new_section + "\n"
     else:
