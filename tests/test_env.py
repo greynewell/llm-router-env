@@ -12,6 +12,14 @@ def make_env(**kwargs) -> LLMRouterEnv:
     return env
 
 
+class TestValidation:
+    def test_empty_models_raises(self):
+        """LLMRouterEnv should raise ValueError immediately when models=[]."""
+        import pytest
+        with pytest.raises(ValueError, match="non-empty"):
+            LLMRouterEnv(models=[])
+
+
 class TestEnvChecker:
     def test_gymnasium_check_env(self):
         """gymnasium.utils.env_checker.check_env must pass without warnings."""
