@@ -71,3 +71,23 @@ When creating a GitHub issue, always include `@claude` at the end of the body:
 4. `claude-pr-shepherd.yml` merges when CI passes
 5. `auto-tag.yml` tags the release
 6. Repeat
+
+### Branch Protection Prerequisite
+
+`claude-pr-shepherd.yml` merges PRs only when `reviewDecision == APPROVED`. GitHub sets
+`reviewDecision` to a non-null value **only when branch protection rules are active**. Without
+branch protection rules, GitHub returns `reviewDecision: null` for every PR, causing the shepherd
+to silently skip all PRs forever and stalling the loop.
+
+**Required setup** — on `main`, enable a branch protection rule with at least one of:
+- **Require a pull request before merging** → **Required approving reviews: 1**
+
+To configure: Settings → Branches → Add branch ruleset (or classic rule) for `main` → enable
+"Require a pull request before merging" with at least 1 required approving review.
+
+If the self-improvement loop appears stalled (no PRs ever merge), check that this rule is in place.
+Run the following to inspect current `reviewDecision` values:
+```
+gh pr list --state open --json number,title,reviewDecision
+```
+If all show `"reviewDecision": null`, the branch protection rule is missing.
