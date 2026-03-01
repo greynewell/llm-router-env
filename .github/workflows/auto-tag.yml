@@ -45,7 +45,7 @@ jobs:
             elif echo "$MSG" | grep -qE "^fix(\(.+\))?:" && [ "$BUMP" != "minor" ]; then
               BUMP="patch"
             fi
-          done < <(git log "$LOG_RANGE" --pretty=%s)
+          done < <(git log "$LOG_RANGE" --pretty=%B)
 
           if [ "$BUMP" = "major" ]; then
             MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0
