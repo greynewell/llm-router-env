@@ -12,7 +12,7 @@ import llm_router_env  # noqa: F401 — registers LLMRouter-v0
 
 
 def make_env(seed: int = 0):
-    env = gym.make("LLMRouter-v0", episode_length=1000)
+    env = gym.make("LLMRouter-v0", episode_length=1000, seed=seed)
     env = Monitor(env)
     env.reset(seed=seed)
     return env
