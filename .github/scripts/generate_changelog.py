@@ -8,11 +8,11 @@ Environment variables:
 Output: updates CHANGELOG.md in the current working directory.
 """
 
+import datetime
 import os
 import re
 import subprocess
 import sys
-from datetime import date
 
 
 # Commit types that map to Keep-a-Changelog sections
@@ -73,7 +73,7 @@ def categorize(commits: list[dict]) -> tuple[list[str], list[str], list[str], li
 
 
 def build_section(tag: str, breaking: list[str], added: list[str], fixed: list[str], changed: list[str]) -> str:
-    lines = [f"## [{tag}] - {date.today().isoformat()}", ""]
+    lines = [f"## [{tag}] - {datetime.date.today().isoformat()}", ""]
     if breaking:
         lines += ["### ⚠ Breaking Changes", ""] + breaking + [""]
     if added:
