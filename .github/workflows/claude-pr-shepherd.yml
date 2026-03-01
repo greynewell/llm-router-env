@@ -55,8 +55,16 @@ jobs:
                   and skip this PR entirely (do NOT merge).
                d. If at least one human approval exists, merge:
                   gh pr merge <number> --repo ${{ github.repository }} --rebase --delete-branch
-            5. If reviewDecision is CHANGES_REQUESTED, post a comment:
-               gh pr comment <number> --repo ${{ github.repository }} --body "@claude please address the review feedback and push an update"
+            5. If reviewDecision is CHANGES_REQUESTED:
+               a. Check for a recent nudge to avoid posting the same comment every 15 minutes.
+                  Run: gh api repos/${{ github.repository }}/issues/<number>/comments --jq '[.[] | select(.body | contains("@claude please address the review feedback")) | .created_at] | last'
+                  If this returns a non-empty timestamp, check how old it is:
+                    NOW=$(date -u +%s)
+                    LAST=$(date -u -d "<the returned timestamp>" +%s)
+                    AGE=$((NOW - LAST))
+                  If AGE < 3600 (less than 60 minutes old), log "Skipping PR #<number>: nudge posted <AGE/60> min ago" and skip to the next PR.
+               b. If no recent nudge exists (empty result or age >= 3600), post:
+                  gh pr comment <number> --repo ${{ github.repository }} --body "@claude please address the review feedback and push an update"
             6. If reviewDecision is null or REVIEW_REQUIRED, skip and wait for the review workflow to complete
 
             Use --repo ${{ github.repository }} on every gh command.
