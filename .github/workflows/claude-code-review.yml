@@ -36,12 +36,22 @@ jobs:
             Be concise. Focus on significant issues only.
             # CUSTOMIZE: Add stack-specific review criteria here
 
-            After posting inline comments, submit a formal review decision using the GitHub API.
-            Determine whether blocking issues were found (significant bugs, security vulnerabilities, or breaking changes).
-            If no blocking issues:
-              gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews --method POST --field body='LGTM' --field event=APPROVE
-            If blocking issues found:
-              gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews --method POST --field body='Changes required: [summarize issues]' --field event=REQUEST_CHANGES
-            Only use REQUEST_CHANGES for significant bugs, security vulnerabilities, or breaking changes. Use APPROVE for minor issues, style comments, or suggestions.
+            After posting inline comments, determine how to submit the review decision.
+            First, detect the PR author:
+              PR_AUTHOR=$(gh pr view ${{ github.event.pull_request.number }} --json author --jq '.author.login')
+            If PR_AUTHOR ends with "[bot]" (e.g. "claude[bot]"):
+              # GitHub rejects self-approval with HTTP 422 — post a plain comment instead
+              Determine whether blocking issues were found.
+              If no blocking issues:
+                gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments --method POST --field body="Code review complete. LGTM — no blocking issues found. A human reviewer must submit the formal approval."
+              If blocking issues found:
+                gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments --method POST --field body="Code review complete. Changes required: [summarize the specific issues found]. A human reviewer must submit the formal review decision."
+            Else (human-authored PR):
+              Determine whether blocking issues were found (significant bugs, security vulnerabilities, or breaking changes).
+              If no blocking issues:
+                gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews --method POST --field body='LGTM' --field event=APPROVE
+              If blocking issues found:
+                gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews --method POST --field body='Changes required: [summarize issues]' --field event=REQUEST_CHANGES
+              Only use REQUEST_CHANGES for significant bugs, security vulnerabilities, or breaking changes. Use APPROVE for minor issues, style comments, or suggestions.
           # CUSTOMIZE: Restrict to read-only tools
           # claude_args: "--allowedTools Bash(go vet ./...),Bash(go test ./...)"
