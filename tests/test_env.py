@@ -1,6 +1,7 @@
 """Tests for LLMRouterEnv — env checker and basic step/reset."""
 
 import numpy as np
+import pytest
 from gymnasium.utils.env_checker import check_env
 
 from llm_router_env import DEFAULT_MODELS, LLMRouterEnv, RewardConfig
@@ -10,6 +11,13 @@ def make_env(**kwargs) -> LLMRouterEnv:
     env = LLMRouterEnv(seed=42, **kwargs)
     env.reset(seed=42)
     return env
+
+
+class TestValidation:
+    def test_empty_models_raises(self):
+        """LLMRouterEnv should raise ValueError immediately when models=[]."""
+        with pytest.raises(ValueError, match="non-empty"):
+            LLMRouterEnv(models=[])
 
 
 class TestEnvChecker:

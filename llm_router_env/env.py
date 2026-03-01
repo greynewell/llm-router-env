@@ -61,6 +61,11 @@ class LLMRouterEnv(gym.Env):
         super().__init__()
 
         self.models = models if models is not None else DEFAULT_MODELS
+        if not self.models:
+            raise ValueError(
+                "models must be a non-empty list. "
+                "Received an empty list, which would create a Discrete(0) action space with no valid actions."
+            )
         self.reward_config = reward_config if reward_config is not None else RewardConfig()
         self.episode_length = episode_length
         self.initial_budget = budget
