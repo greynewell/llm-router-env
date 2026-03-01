@@ -51,6 +51,8 @@ def categorize(commits: list[dict]) -> tuple[list[str], list[str], list[str], li
     changed: list[str] = []
 
     for c in commits:
+        if "[skip ci]" in c["subject"]:
+            continue
         m = re.match(r"^([a-z]+)(\(([^)]+)\))?!?:\s*(.*)", c["subject"])
         if not m:
             continue
