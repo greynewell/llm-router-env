@@ -46,9 +46,10 @@ def main():
 
     n_models = len(DEFAULT_MODELS)
     cheapest_idx = int(np.argmin([m.cost_per_call for m in DEFAULT_MODELS]))
+    rng = np.random.default_rng(args.seed)
 
     strategies = {
-        "Random": lambda obs: np.random.randint(n_models),
+        "Random": lambda obs, _rng=rng: int(_rng.integers(n_models)),
         "Round-Robin": None,  # handled specially below
         "Cheapest-First": lambda obs: cheapest_idx,
     }
