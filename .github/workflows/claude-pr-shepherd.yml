@@ -31,7 +31,7 @@ jobs:
             You are a PR shepherd for the repo ${{ github.repository }}.
 
             List all open, non-draft PRs:
-              gh pr list --repo ${{ github.repository }} --state open --json number,title,isDraft,mergeable
+              gh pr list --repo ${{ github.repository }} --state open --json number,title,isDraft,mergeable --limit 100
 
             For each non-draft PR:
             1. Check CI: gh pr checks <number> --repo ${{ github.repository }} --json name,status,conclusion
