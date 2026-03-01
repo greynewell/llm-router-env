@@ -55,6 +55,7 @@ jobs:
                   and skip this PR entirely (do NOT merge).
                d. If at least one human approval exists, merge:
                   gh pr merge <number> --repo ${{ github.repository }} --rebase --delete-branch
+                  After a successful merge, log "Merged PR #<number>. Stopping — next cron cycle will handle remaining PRs once CI runs on the updated main." and immediately stop processing any further PRs. Do not continue to the next PR in the list.
             5. If reviewDecision is CHANGES_REQUESTED, post a comment:
                gh pr comment <number> --repo ${{ github.repository }} --body "@claude please address the review feedback and push an update"
             6. If reviewDecision is null or REVIEW_REQUIRED, skip and wait for the review workflow to complete
