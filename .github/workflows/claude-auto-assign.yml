@@ -30,7 +30,7 @@ jobs:
 
           # Option 1: Restrict to specific username(s)
           ALLOWED_USERS="greynewell"
-          if echo "$ALLOWED_USERS" | grep -qw "$ISSUE_AUTHOR"; then
+          if echo "$ALLOWED_USERS" | grep -qFw "$ISSUE_AUTHOR"; then
             AUTHORIZED=true
           else
             AUTHORIZED=false
