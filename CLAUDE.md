@@ -46,13 +46,18 @@ Use [Conventional Commits](https://www.conventionalcommits.org/):
 
 Always create PRs using `gh pr create`. Never substitute a compare link.
 
+Always include `--reviewer` to request a human review — this is required for the
+shepherd merge gate (`claude-pr-shepherd.yml`) to pass, which blocks on at least
+one non-bot "APPROVED" review before merging.
+
 ```
 gh pr create \
   --repo OWNER/REPO \
   --title "..." \
   --body "..." \
   --base main \
-  --head <branch>
+  --head <branch> \
+  --reviewer <REVIEWER>   # CUSTOMIZE: repo owner login or team (e.g. greynewell)
 ```
 
 ## Issues
