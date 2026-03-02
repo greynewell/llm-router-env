@@ -26,3 +26,6 @@ build/
 .pytest_cache/
 *.zip
 training_curves.png
+
+# setuptools_scm auto-generated version file
+llm_router_env/_version.py
