@@ -50,7 +50,7 @@ jobs:
                a. Fetch the PR reviews list:
                   gh api repos/${{ github.repository }}/pulls/<number>/reviews
                b. From the returned JSON array, count entries where state is "APPROVED"
-                  AND user.login does NOT end with "[bot]". These are human approvals.
+                  AND user.type is "User" (not "Bot"). These are human approvals.
                c. If human approval count is 0, log "waiting for human approval on PR #<number>"
                   and skip this PR entirely (do NOT merge).
                d. If at least one human approval exists, merge:
