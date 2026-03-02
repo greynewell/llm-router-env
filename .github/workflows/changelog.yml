@@ -1,0 +1,46 @@
+name: Changelog
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  update-changelog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve tag range
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          PREV_TAG=$(git tag --sort=-v:refname \
+            | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+            | grep -v "^${TAG}$" \
+            | head -1 || true)
+          echo "TAG=${TAG}" >> "$GITHUB_ENV"
+          echo "PREV_TAG=${PREV_TAG}" >> "$GITHUB_ENV"
+
+      - name: Generate changelog section
+        run: python3 .github/scripts/generate_changelog.py
+
+      - name: Commit and push CHANGELOG.md
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          if git diff --cached --quiet; then
+            echo "No changes to CHANGELOG.md"
+          else
+            git commit -m "chore: update CHANGELOG.md for ${TAG} [skip ci]"
+            git push origin main
+          fi
