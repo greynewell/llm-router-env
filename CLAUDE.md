@@ -26,7 +26,7 @@ Before committing:
 ```
 ruff check .
 pytest -x
-find .github/workflows -name '*.yml' -exec python3 -c "import yaml,sys; yaml.safe_load(open(sys.argv[1]))" {} \;
+actionlint
 ```
 
 ## Commits
