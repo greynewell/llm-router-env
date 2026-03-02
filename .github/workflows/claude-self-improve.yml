@@ -24,7 +24,7 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           allowed_bots: "claude[bot],github-actions[bot]"
-          claude_args: '--allowedTools "Bash(gh issue list:*),Bash(gh issue create:*),Bash(gh pr list:*),Bash(gh pr view:*),Read,Glob,Grep"'
+          claude_args: '--allowedTools "Bash(gh issue list:*),Bash(gh issue create:*),Bash(gh label create:*),Bash(gh pr list:*),Bash(gh pr view:*),Read,Glob,Grep"'
           prompt: |
             You are the Claude Software Factory conducting its weekly deep self-improvement scan.
             This repo IS the factory — its workflows are the product. Improving them is the primary goal.
@@ -32,8 +32,11 @@ jobs:
             This scan runs once a week (Sundays) and performs deeper analysis than the hourly scanner.
             Take your time and be thorough.
 
-            Check existing open issues first to avoid duplicates:
-              gh issue list --state open --limit 50
+            Ensure the "automated" label exists (safe to run every time):
+              gh label create "automated" --description "Issues filed by automated workflows" --color "0075ca" --force
+
+            Check existing automated issues first to avoid duplicates:
+              gh issue list --label automated --state open --limit 100
 
             Perform the following four passes in order:
 
@@ -74,7 +77,7 @@ jobs:
             - Any failure patterns in CI that the factory itself could detect proactively
 
             For each concrete finding across all four passes, file an issue:
-              gh issue create --title "..." --body "...specific file, line or behavior, current state, desired improvement...\n\n@claude please implement this"
+              gh issue create --label "automated" --title "..." --body "...specific file, line or behavior, current state, desired improvement...\n\n@claude please implement this"
 
             File at most 5 issues per run. Prioritize findings that improve the factory loop itself.
             Prefer specific, actionable issues over vague observations.
