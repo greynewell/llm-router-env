@@ -97,9 +97,9 @@ def update_changelog(tag: str, new_section: str) -> None:
     if os.path.exists("CHANGELOG.md"):
         with open("CHANGELOG.md") as f:
             existing = f.read()
-        m = re.search(r"\n## ", existing)
+        m = re.search(r"^## ", existing, re.MULTILINE)
         if m:
-            content = existing[: m.start()] + "\n" + new_section + existing[m.start() :]
+            content = existing[: m.start()] + new_section + "\n" + existing[m.start() :]
         else:
             content = existing.rstrip() + "\n\n" + new_section + "\n"
     else:
@@ -122,6 +122,9 @@ def main() -> None:
 
     commits = get_commits(log_range)
     breaking, added, fixed, changed = categorize(commits)
+    if not any([breaking, added, fixed, changed]):
+        print("No conventional commits found; skipping CHANGELOG.md update.")
+        return
     new_section = build_section(tag, breaking, added, fixed, changed)
     update_changelog(tag, new_section)
 
