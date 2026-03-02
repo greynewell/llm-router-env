@@ -68,6 +68,6 @@ When creating a GitHub issue, always include `@claude` at the end of the body:
 1. `claude-proactive.yml` (hourly) and `claude-self-improve.yml` (weekly) scan for issues
 2. Issues trigger `claude-auto-assign.yml` → `claude.yml` implements them
 3. `claude-code-review.yml` reviews the PR
-4. `claude-pr-shepherd.yml` merges when CI passes
+4. `claude-pr-shepherd.yml` merges when CI passes and a human approves
 5. `auto-tag.yml` tags the release
 6. Repeat
