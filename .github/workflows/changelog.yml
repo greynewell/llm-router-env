@@ -1,0 +1,56 @@
+name: Update Changelog
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  update-changelog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine previous tag
+        id: tags
+        run: |
+          CURRENT_TAG="${GITHUB_REF#refs/tags/}"
+          echo "current=${CURRENT_TAG}" >> "$GITHUB_OUTPUT"
+
+          PREV_TAG=$(git tag --sort=-v:refname \
+            | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+            | grep -v "^${CURRENT_TAG}$" \
+            | head -1 || true)
+          echo "previous=${PREV_TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Generate changelog entry
+        run: |
+          chmod +x scripts/update_changelog.sh
+          PREV="${{ steps.tags.outputs.previous }}"
+          if [ -n "$PREV" ]; then
+            ./scripts/update_changelog.sh "${{ steps.tags.outputs.current }}" "$PREV"
+          else
+            ./scripts/update_changelog.sh "${{ steps.tags.outputs.current }}"
+          fi
+
+      - name: Commit and push CHANGELOG.md
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git diff --quiet CHANGELOG.md; then
+            echo "No changes to CHANGELOG.md — skipping commit."
+            exit 0
+          fi
+
+          git add CHANGELOG.md
+          git commit -m "docs: update CHANGELOG.md for ${{ steps.tags.outputs.current }} [skip ci]"
+          git push origin HEAD:main
