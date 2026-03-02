@@ -13,11 +13,12 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   claude-code-review:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     if: github.event.pull_request.draft == false
     steps:
       - name: Run Claude Code Review
@@ -27,6 +28,11 @@ jobs:
           allowed_bots: "claude[bot],github-actions[bot]"
           claude_args: '--allowedTools "Bash(gh pr view:*),Bash(gh api:*),Read,Glob,Grep"'
           prompt: |
+            Before posting any new inline review comments, clean up stale bot inline review comments left by previous cancelled runs on this PR. Run the following to find existing bot comments:
+              gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/comments --paginate --jq '.[] | select(.user.login == "github-actions[bot]" or .user.login == "claude[bot]") | .id'
+            For each comment ID returned, delete it (ignore errors if already gone):
+              gh api repos/${{ github.repository }}/pulls/comments/<id> --method DELETE
+
             Review this pull request for:
             1. Correctness and logic errors
             2. Security vulnerabilities
