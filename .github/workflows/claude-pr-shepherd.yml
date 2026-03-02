@@ -20,7 +20,20 @@ jobs:
   shepherd:
     runs-on: ubuntu-latest
     steps:
+      - name: Check for open PRs
+        id: check-prs
+        env:
+          GH_TOKEN: ${{ secrets.GH_WORKFLOW_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          count=$(gh pr list --repo "$REPO" --state open --json number --jq 'length')
+          echo "open_pr_count=$count" >> "$GITHUB_OUTPUT"
+          if [ "$count" -eq 0 ]; then
+            echo "No open PRs found, skipping Claude session."
+          fi
+
       - name: Run Claude PR Shepherd
+        if: steps.check-prs.outputs.open_pr_count != '0'
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
