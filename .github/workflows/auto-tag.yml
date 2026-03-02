@@ -27,6 +27,14 @@ jobs:
           MINOR=$(echo $LATEST | cut -d. -f2)
           PATCH=$(echo $LATEST | cut -d. -f3)
 
+          # Recovery: if LATEST tag exists on remote but has no GitHub release, create the missing release.
+          # This handles the case where a previous run pushed the tag but gh release create failed,
+          # leaving an orphaned tag that would otherwise permanently block that version's release.
+          if [ "$LATEST" != "v0.0.0" ] && ! gh release view "$LATEST" > /dev/null 2>&1; then
+            echo "Recovering: tag $LATEST exists without a GitHub release, creating it now"
+            gh release create "$LATEST" --generate-notes --title "$LATEST"
+          fi
+
           # Scan all commits in range since last tag for highest-precedence bump
           # Guard: use full history if LATEST is not a real git ref (e.g. v0.0.0 fallback)
           if git rev-parse -q --verify "$LATEST" > /dev/null 2>&1; then
@@ -59,9 +67,11 @@ jobs:
           fi
 
           NEW_TAG="v${MAJOR}.${MINOR}.${PATCH}"
-          git tag $NEW_TAG
-          git push origin $NEW_TAG
-          echo "Tagged: $NEW_TAG"
+          # Create the release first — gh release create atomically creates the remote tag
+          # and GitHub release in a single API call. If this fails, no remote tag is stranded,
+          # and the next CI run will safely recompute and retry.
           gh release create "$NEW_TAG" \
             --generate-notes \
-            --title "$NEW_TAG"
+            --title "$NEW_TAG" \
+            --target "$(git rev-parse HEAD)"
+          echo "Released: $NEW_TAG"
